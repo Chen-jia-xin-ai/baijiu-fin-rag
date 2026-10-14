@@ -1,0 +1,28 @@
+# 凭据 —— 绝不入库
+.env
+
+# 语料与索引(可由 01-04 号脚本完整重建)
+#
+# 坑:不能写 `data/chunks/` 再加 `!data/chunks/xxx`。
+# git 一旦把整个目录排除,就**不再往里看**,后面的例外永远不会生效
+# (gitignore 从后往前匹配,但目录递归在这一步已经断了)。
+# 必须先排除目录里的内容 `data/chunks/*`,才能用 `!` 把单个文件捞回来。
+data/raw/
+data/pages/
+data/chunks/*
+data/tables/*
+data/index/*
+data/llm_cache.json
+
+# 例外:留一份小块样本,评审不装依赖、不抓 PDF 也能看出块长什么样
+!data/chunks/sample.jsonl
+!data/tables/sample.jsonl
+!data/index/meta.json
+!data/index/rows_meta.json
+
+# 中间产物
+*.npy
+*.pkl
+__pycache__/
+*.pyc
+logs/

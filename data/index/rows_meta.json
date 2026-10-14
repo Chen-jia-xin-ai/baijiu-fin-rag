@@ -1,0 +1,5 @@
+{
+  "n_rows": 66839,
+  "model": "BAAI/bge-small-zh-v1.5",
+  "has_emb": true
+}
