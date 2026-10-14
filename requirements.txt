@@ -22,6 +22,6 @@ pydantic==2.14.1
 # --- 评测的第三桶兜底(结构化聚合) ---
 pandas==3.0.6
 
-# --- 可选:自动截图(只给 scripts/06_screenshot.py 用,不装也能跑完整条链路) ---
+# --- 可选:自动截图与一页 PDF(06_screenshot.py / 09_pdf.py 用,不装也能跑完整条链路) ---
 # pip install playwright && python -m playwright install chromium
 # playwright==1.64.0

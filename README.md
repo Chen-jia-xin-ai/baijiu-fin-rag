@@ -20,6 +20,7 @@
 | 6/6 问答 | `app/server.py` + `app/static/index.html` | 检索 → 分路融合 → 生成 → 引用编号由服务端指派 |
 | 7/7 评测 | `eval/verify_gold.py` → `scripts/05_eval.py` | 验金标 → 10 题 × 7 种检索配置 → `eval/results.md` |
 | 附 | `scripts/06_screenshot.py` / `scripts/07_pack.py` | 页面截图；抽小块样本提交，评审不必先抓 48 份 PDF |
+| 附 | `scripts/09_pdf.py` | 把 `docs/结论.md` 渲染成**一页 PDF**（作业附件的「一页结论」要交 PDF） |
 | 附 | `scripts/peek.py` | 在**提取结果**里按关键词找行——写金标全靠它 |
 
 ```bash
@@ -31,6 +32,7 @@ python scripts/03_chunk.py
 python scripts/04_index.py
 python scripts/08_rows.py     # 行级索引（约 15 分钟，主要是嵌入 6.7 万条行）
 python app/server.py          # http://127.0.0.1:8000
+python scripts/09_pdf.py      # docs/结论.md -> docs/结论.pdf（一页）
 ```
 
 ---
@@ -265,7 +267,9 @@ recall@5 从 7/10 掉到 6/10——**是让行保留表的层级**：合计/小�
 [`eval/questions.json`](eval/questions.json) 该题的 `_note` 里。
 
 逐题记录见 [`eval/results.md`](eval/results.md)(逐题召回、七模式消融、判分、失败码矩阵、
-两轮前后对比),一页结论见 [`docs/结论.md`](docs/结论.md)。
+两轮前后对比),一页结论见 [`docs/结论.md`](docs/结论.md)（同内容的一页 PDF:
+[`docs/结论.pdf`](docs/结论.pdf),由 `scripts/09_pdf.py` 生成）。
+页面截图:[`docs/screenshot.png`](docs/screenshot.png)。
 
 ---
 
@@ -276,11 +280,13 @@ config.py              全局配置 + 零依赖 .env 加载 + Windows UTF-8 控�
 companies.json         12 家公司的代码、简称、别名（别名供分路检索与 jieba 用）
 retriever.py           检索层：向量 / BM25 / RRF / 分路检索（网页与评测共用）
 llm.py                 DeepSeek 调用 + 本地缓存 + 无 key 优雅降级
-scripts/01..07         取数 → 解析 → 切块 → 索引 → 评测 → 截图 → 打包样本
+scripts/01..09         取数 → 解析 → 切块 → 索引 → 评测 → 截图 → 打包样本 → 一页 PDF
 scripts/peek.py        按关键词回查提取结果（写金标用）
 app/                   FastAPI 后端 + 原生前端
 eval/questions.json    10 道题与金标（手工撰写）
 eval/verify_gold.py    金标必须能被提取原文证实，跑评测前的闸门
+docs/结论.md           一页结论（.pdf 由 scripts/09_pdf.py 生成）
+docs/screenshot.png    问答页截图
 data/                  语料与索引（.gitignore，可由 01–04 完整重建）
 ```
 
