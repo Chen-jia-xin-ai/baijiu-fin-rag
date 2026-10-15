@@ -4,7 +4,7 @@
 >
 > 白酒 12 家上市公司 × 4 期财报（2023/2024/2025 年报 + 2026 半年报）= 48 份 PDF 全文。
 > 表格按行列还原、每个块自带公司/报告期/章节/页码、向量 + BM25 混合检索、
-> 答案带出处，并用 10 道题（含 2 道跨公司）逐题记录「召回了什么、答对没有、错在哪」。
+> 答案带出处，并用 10 道题（含 3 道跨公司全景题：Q5/Q6/Q7）逐题记录「召回了什么、答对没有、错在哪」。
 
 ---
 
@@ -20,7 +20,8 @@
 | 6/6 问答 | `app/server.py` + `app/static/index.html` | 检索 → 分路融合 → 生成 → 引用编号由服务端指派 |
 | 7/7 评测 | `eval/verify_gold.py` → `scripts/05_eval.py` | 验金标 → 10 题 × 7 种检索配置 → `eval/results.md` |
 | 附 | `scripts/06_screenshot.py` / `scripts/07_pack.py` | 页面截图；抽小块样本提交，评审不必先抓 48 份 PDF |
-| 附 | `scripts/09_pdf.py` | 把 `docs/结论.md` 渲染成**一页 PDF**（作业附件的「一页结论」要交 PDF） |
+| 附 | `scripts/09_pdf.py` | md → PDF：默认**一页版式**（`docs/结论.pdf`），`--flow` 切**多页版式**（`docs/核验报告.pdf`） |
+| 附 | `scripts/10_evidence.py` | 只读**冻结的评测快照**，生成官方来源清单 + 10 题逐题证据 + 逐家取证（见第五节「可核验材料」） |
 | 附 | `scripts/peek.py` | 在**提取结果**里按关键词找行——写金标全靠它 |
 
 ```bash
@@ -33,6 +34,8 @@ python scripts/04_index.py
 python scripts/08_rows.py     # 行级索引（约 15 分钟，主要是嵌入 6.7 万条行）
 python app/server.py          # http://127.0.0.1:8000
 python scripts/09_pdf.py      # docs/结论.md -> docs/结论.pdf（一页）
+python scripts/10_evidence.py # 只用已入库的评测快照，重出来源清单与核验报告（不调 LLM、不重跑）
+python scripts/09_pdf.py --flow --src docs/核验报告.md --out docs/核验报告.pdf
 ```
 
 ---
@@ -271,6 +274,20 @@ recall@5 从 7/10 掉到 6/10——**是让行保留表的层级**：合计/小�
 [`docs/结论.pdf`](docs/结论.pdf),由 `scripts/09_pdf.py` 生成）。
 页面截图:[`docs/screenshot.png`](docs/screenshot.png)。
 
+### 可核验材料（每一项都能从仓库内文件回查，不需要重跑）
+
+| 入口 | 内容 |
+|---|---|
+| [`docs/来源清单.csv`](docs/来源清单.csv) | **12 家 × 4 期 = 48 份**官方年报/半年报：公告标题、披露日期、巨潮公告详情页、PDF 直链、字节数、SHA256。Excel 可直接打开（utf-8-sig）。同内容另有 [`docs/来源清单.md`](docs/来源清单.md) |
+| [`docs/核验报告.md`](docs/核验报告.md) / [`docs/核验报告.pdf`](docs/核验报告.pdf) | **10 题逐题**：题干、金标、**实际召回块的 chunk_id 与出处**、模型答案原文、判分、**错误位置**、失败码、根因；外加**逐家取证**（公司覆盖 / 正确块召回 / 答案使用分列）与**跨公司全景题**单节 |
+| [`eval/evidence/20261014_2039.json`](eval/evidence/) | 机器可读的同一份证据，绑定冻结快照；含 `_selfcheck`（重算的金标名次 vs 快照记录） |
+| `scripts/10_evidence.py` | 上面三样的**生成器**：只读 `eval/runs/*.json` + `eval/questions.json` + `data/manifest.jsonl`，**零 API 调用、零重跑**，自校验不一致就会告警 |
+| 表格与切块代码 | 表格按行列还原 `scripts/02_extract.py`；切块 `scripts/03_chunk.py`；行级索引 `scripts/08_rows.py`；金标存在性闸门 `eval/verify_gold.py` |
+
+**一条口径说明**：「正确块召回」是**块级**指标（金标页码 ±1 是否进 top-k），「答案使用」是**答案级**指标
+（答案里 `[n]` 引用到的块是否命中金标）。两者在核验报告里**分列**，不用 top-k 覆盖率代替答案评价——
+Q6 正是块级满分（3/3 召回、3/3 引用）而答案级仍只判「部分对」的例子。
+
 ---
 
 ## 六、目录
@@ -280,12 +297,16 @@ config.py              全局配置 + 零依赖 .env 加载 + Windows UTF-8 控�
 companies.json         12 家公司的代码、简称、别名（别名供分路检索与 jieba 用）
 retriever.py           检索层：向量 / BM25 / RRF / 分路检索（网页与评测共用）
 llm.py                 DeepSeek 调用 + 本地缓存 + 无 key 优雅降级
-scripts/01..09         取数 → 解析 → 切块 → 索引 → 评测 → 截图 → 打包样本 → 一页 PDF
+scripts/01..10         取数 → 解析 → 切块 → 索引 → 评测 → 截图 → 打包样本 → PDF → 核验材料
 scripts/peek.py        按关键词回查提取结果（写金标用）
 app/                   FastAPI 后端 + 原生前端
 eval/questions.json    10 道题与金标（手工撰写）
+eval/runs/*.json       冻结的评测快照（逐题 hits / 分数 / gold_ranks / 答案）——核验材料的唯一数据源
+eval/evidence/*.json   由 10_evidence.py 从快照推导的逐题证据（含自校验结果）
 eval/verify_gold.py    金标必须能被提取原文证实，跑评测前的闸门
 docs/结论.md           一页结论（.pdf 由 scripts/09_pdf.py 生成）
+docs/核验报告.md       10 题逐题证据 + 逐家取证（.pdf 由 09_pdf.py --flow 生成）
+docs/来源清单.csv/.md  48 份官方来源入口（巨潮详情页 + PDF 直链 + SHA256）
 docs/screenshot.png    问答页截图
 data/                  语料与索引（.gitignore，可由 01–04 完整重建）
 ```
